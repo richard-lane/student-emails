@@ -5,8 +5,11 @@ Skel at the moment
 
 """
 import pandas as pd
-from libEmails import read
+from sklearn import metrics
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import RidgeClassifier
+
+from libEmails import read
 
 
 def main() -> None:
@@ -27,6 +30,17 @@ def main() -> None:
 
     # Replace str repr of subject cat with int
     email_bodies["Subject Categorisation"].replace(subject_cats, inplace=True)
+
+    categories = email_bodies["Subject Categorisation"].to_numpy()
+
+    # Classifier
+    clf = RidgeClassifier()
+    clf.fit(X, categories)
+
+    print(clf.predict(X))
+
+    score = metrics.f1_score(categories, clf.predict(X))
+    print(f"F1 score: {score}")
 
 
 if __name__ == "__main__":
