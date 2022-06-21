@@ -23,6 +23,6 @@ def read_email_body() -> pd.DataFrame:
         "./data/Anonymised Electrical & Electronic Engineering Email Body Sample 200.xlsx"
     )
 
-    rv.dropna(inplace=True)
+    rv.dropna(inplace=True, subset="EmailBody")
 
     return rv
