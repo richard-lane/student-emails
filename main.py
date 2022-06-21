@@ -4,11 +4,9 @@ Student emails project
 Skel at the moment
 
 """
-import numpy as np
 import pandas as pd
 from sklearn import metrics
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import RidgeClassifier
 from sklearn.naive_bayes import MultinomialNB
 
 from libEmails import read
@@ -32,16 +30,16 @@ def main() -> None:
     # Find what subject categories there are
     subject_cats = set(df["Subject Categorisation"])
 
-    # Map these (deterministically) onto ints
-    # Convert to a list so we can sort it
-    # Sort it so that the indices map onto alphabetical order
-    subject_cats = {v: k for k, v in enumerate(sorted(list(subject_cats)))}
-    print(subject_cats)
+    # ---- Commented out for now since there's no need to do this
+    # # Map these (deterministically) onto ints
+    # # Convert to a list so we can sort it
+    # # Sort it so that the indices map onto alphabetical order
+    # subject_cats = {v: k for k, v in enumerate(sorted(list(subject_cats)))}
 
-    # Replace str repr of subject cat with int
-    df["Subject Categorisation"].replace(subject_cats, inplace=True)
+    # # Replace str repr of subject cat with int
+    # df["Subject Categorisation"].replace(subject_cats, inplace=True)
 
-    categories = df["Subject Categorisation"].to_numpy()
+    categories = df["Subject Categorisation"]
 
     # Classifier
     clf = MultinomialNB()
