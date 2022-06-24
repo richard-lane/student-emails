@@ -4,6 +4,7 @@ Student emails project
 Skel at the moment
 
 """
+import sys
 import pandas as pd
 import numpy as np
 from typing import Tuple
@@ -42,6 +43,19 @@ def main() -> None:
     print(metrics.classification_report(categories[train], clf.predict(X[train])))
     print(metrics.classification_report(categories[~train], clf.predict(X[~train])))
 
+    # Do some interactive stuff maybe
+    if "-i" in sys.argv or "--interactive" in sys.argv:
+        s = input()
+        while s:
+            X: sparse.csr_matrix = vectorizer.transform([s])
+            (predicted_class,) = clf.predict(X)
+            probabilities = clf.predict_proba(X)
+            print(f"{predicted_class}\n{probabilities}")
+            s = input()
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
