@@ -3,19 +3,21 @@ Read emails
 
 """
 import pandas as pd
+import numpy as np
+from typing import Tuple
 
 
 def read_email_body() -> pd.DataFrame:
     """
     Read the Excel spreadsheet of emails with email bodies
 
-    Drops rows containing NaN
+    The path to this file is hard coded
+    Drops rows containing NaN email bodies
 
     Reads the first sheet
     Uses the first row as column labels
     Parses all columns
 
-    :param path: location of the student emails Excel file
     :returns: dataframe holding all the emails + metadata
 
     """
@@ -26,3 +28,49 @@ def read_email_body() -> pd.DataFrame:
     rv.dropna(inplace=True, subset="EmailBody")
 
     return rv
+
+
+def read_email_subjects(
+    min_support: int = 15, verbose: bool = True
+) -> Tuple[pd.Series, pd.Series]:
+    """
+    Read the Excel spreadsheet of emails with email subject lines only
+
+    The path to this file is hard coded
+    Drops rows containing NaN subject lines
+
+    Reads the first sheet; uses the first row as column labels; parses all columns
+
+    :param min_support: minimum number of emails with in a given category. Defaults to 15.
+    :param verbose: whether to print information about what cuts are being performed.
+    :returns: pandas series of email subject lines
+    :returns: pandas series of email demand categories
+
+    """
+    df: pd.DataFrame = pd.read_excel(
+        "./data/Anonymised_UG_Economics_Email_Sample_7500_2022-05-26 Strip.xlsx"
+    )
+
+    # Drop any where the subject line is NaN
+    subject_heading = "AnonSubject"
+    if verbose:
+        print(f"Dropping {df[subject_heading].isna().sum()} NaN values of {len(df)}")
+    df.dropna(inplace=True, subset=subject_heading)
+
+    # Get rid of any demand types with too few occurrences
+    category_heading = "Subject category"
+    unique_categories = set(df[category_heading])
+    category_counts = {k: np.sum(df[category_heading] == k) for k in unique_categories}
+
+    too_few = {k: v for k, v in category_counts.items() if v < min_support}
+    if verbose:
+        print(
+            f"Following categories will be removed; fewer than the minimum ({min_support}) found:"
+        )
+        for k, v in too_few.items():
+            n_spaces = 30 - len(k)
+            print(f"\t{k}:{' ' * n_spaces}{v}")
+    mask = ~np.logical_or.reduce([df[category_heading] == s for s in too_few.keys()])
+    df = df[mask]
+
+    return df[subject_heading], df[category_heading]

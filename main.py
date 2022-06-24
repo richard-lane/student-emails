@@ -5,6 +5,7 @@ Skel at the moment
 
 """
 import pandas as pd
+from typing import Tuple
 from sklearn import metrics
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
@@ -13,8 +14,8 @@ from libEmails import read
 
 
 def main() -> None:
-    # Read email bodies into a pandas dataframe
-    df: pd.DataFrame = read.read_email_body()
+    # Read email subjects and demand categories into pandas series
+    subjects, categories = read.read_email_subjects()
 
     # Read the email bodies into a bag of words
     vectorizer = TfidfVectorizer(
@@ -25,21 +26,7 @@ def main() -> None:
         ngram_range=(1, 2),
         stop_words="english",
     )
-    X = vectorizer.fit_transform(df["EmailBody"].to_numpy())
-
-    # Find what subject categories there are
-    subject_cats = set(df["Subject Categorisation"])
-
-    # ---- Commented out for now since there's no need to do this
-    # # Map these (deterministically) onto ints
-    # # Convert to a list so we can sort it
-    # # Sort it so that the indices map onto alphabetical order
-    # subject_cats = {v: k for k, v in enumerate(sorted(list(subject_cats)))}
-
-    # # Replace str repr of subject cat with int
-    # df["Subject Categorisation"].replace(subject_cats, inplace=True)
-
-    categories = df["Subject Categorisation"]
+    X = vectorizer.fit_transform(subjects)
 
     # Classifier
     clf = MultinomialNB()
