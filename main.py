@@ -1,5 +1,4 @@
-"""
-Student emails project
+""" Student emails project
 
 Skel at the moment
 
@@ -11,13 +10,24 @@ from typing import Tuple
 from sklearn import metrics
 from scipy import sparse
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 from libEmails import read
 
 
 def main() -> None:
-    # Read email subjects and demand categories into pandas series
-    X, categories = read.read_email_subjects(min_support=75, sampling="undersample")
+    interactive = "-i" in sys.argv or "--interactive" in sys.argv
+
+    # Kwargs for parsing the data
+    kw = {"min_support": 75, "sampling": "undersample"}
+
+    # We need access to the TfidfVectorizer if we want to later run on arbitrary input
+    if interactive:
+        kw["return_vectorizer"] = True
+        X, categories, vectorizer = read.read_email_subjects(**kw)
+
+    else:
+        X, categories = read.read_email_subjects(**kw)
 
     # Mask for training
     rng = np.random.default_rng(seed=0)
@@ -32,7 +42,7 @@ def main() -> None:
     print(metrics.classification_report(categories[~train], clf.predict(X[~train])))
 
     # Do some interactive stuff maybe
-    if "-i" in sys.argv or "--interactive" in sys.argv:
+    if interactive:
         s = input()
         while s:
             X: sparse.csr_matrix = vectorizer.transform([s])

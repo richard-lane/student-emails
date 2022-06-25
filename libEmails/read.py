@@ -73,8 +73,11 @@ def read_email_body() -> pd.DataFrame:
 
 
 def read_email_subjects(
-    min_support: int = 15, verbose: bool = True, sampling: str = "naive"
-) -> Tuple[csr_matrix, pd.Series]:
+    min_support: int = 15,
+    verbose: bool = True,
+    sampling: str = "naive",
+    return_vectorizer=False,
+) -> Tuple:
     """
     Read the Excel spreadsheet of emails with email subject lines only
 
@@ -92,6 +95,7 @@ def read_email_subjects(
 
     :returns: pandas series of email subject lines
     :returns: pandas series of email demand categories
+    :returns: if `return_vectorizer is True`, returns also the vectorizer used for fitting/transforming the subjects
 
     """
     assert sampling in {"naive", "undersample", "oversample"}
@@ -144,4 +148,6 @@ def read_email_subjects(
     elif sampling == "oversample":
         df = _oversample(df)
 
-    return bag_of_words, labels
+    if not return_vectorizer:
+        return bag_of_words, labels
+    return bag_of_words, labels, vectorizer
