@@ -4,6 +4,7 @@ Skel at the moment
 
 """
 import sys
+import argparse
 import pandas as pd
 import numpy as np
 from typing import Tuple
@@ -16,19 +17,19 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from libEmails import read
 
 
-def main() -> None:
-    interactive = "-i" in sys.argv or "--interactive" in sys.argv
-
-    # Kwargs for parsing the data
-    kw = {"min_support": 75, "sampling": "undersample"}
+def main(args: argparse.Namespace) -> None:
+    rv = read.read_email_subjects(
+        args.min,
+        args.verbose,
+        args.sampling,
+        args.interactive,
+    )
 
     # We need access to the TfidfVectorizer if we want to later run on arbitrary input
-    if interactive:
-        kw["return_vectorizer"] = True
-        X, categories, vectorizer = read.read_email_subjects(**kw)
-
+    if args.interactive:
+        X, categories, vectorizer = rv
     else:
-        X, categories = read.read_email_subjects(**kw)
+        X, categories = rv
 
     # Mask for training
     rng = np.random.default_rng(seed=0)
@@ -66,18 +67,49 @@ def main() -> None:
     )
 
     # Do some interactive stuff maybe
-    if interactive:
-        s = input()
+    if args.interactive:
+        s: str = input()
         while s:
-            X: sparse.csr_matrix = vectorizer.transform([s])
-            (predicted_class,) = clf.predict(X)
-            probabilities = clf.predict_proba(X)
+            X_user: sparse.csr_matrix = vectorizer.transform([s])
+            (predicted_class,) = clf.predict(X_user)
+            probabilities = clf.predict_proba(X_user)
             print(f"{predicted_class}\n{probabilities}")
             s = input()
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="NLP for student email project")
+
+    # Kwargs for parsing the data
+    parser.add_argument(
+        "-m",
+        "--min",
+        help="classifier will only be trained on labels with more counts than this minimum",
+        type=int,
+        default=75,
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Extra print output when reading stuff",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-i",
+        "--interactive",
+        help="whether to do wait for user input at the end for testing arbitrary strings",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-s",
+        "--sampling",
+        help="whether to undersample, oversample or use naive sampling",
+        default="naive",
+        choices={"undersample", "oversample", "naive"},
+    )
     try:
-        main()
+        main(parser.parse_args())
     except (KeyboardInterrupt, EOFError):
         pass
