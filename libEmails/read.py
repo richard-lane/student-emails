@@ -5,6 +5,9 @@ Read emails
 import pandas as pd
 import numpy as np
 from typing import Tuple
+from pprint import pprint
+from scipy.sparse import csr_matrix
+from imblearn.under_sampling import RandomUnderSampler
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
@@ -17,6 +20,33 @@ def _count_unique(series: pd.Series) -> dict:
 
     """
     return dict(zip(*np.unique(series, return_counts=True)))
+
+
+def _undersample(
+    bag_of_words: csr_matrix, class_labels: pd.Series
+) -> Tuple[csr_matrix, pd.Series]:
+    """
+    Undersample all classes but the minority in order to have a balanced classification set
+
+    :param bag_of_words: bag of words to undersample.
+    :param class_labels: class labels used for classification
+    :returns: bag of words with non-minority subject categories undersampled to have a balanced set
+
+    """
+    sampler = RandomUnderSampler(random_state=0)
+    return sampler.fit_resample(bag_of_words, class_labels)
+
+
+def _oversample(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Oversample all classes but the majority in order to have a balanced classification set
+
+    :param df: pandas dataframe to oversample.
+               Must have a column titled "Subject category"; this is the class used in the classification
+    :returns: dataframe with non-majority subject categories oversampled to have a balanced set
+
+    """
+    raise NotImplementedError
 
 
 def read_email_body() -> pd.DataFrame:
@@ -44,7 +74,7 @@ def read_email_body() -> pd.DataFrame:
 
 def read_email_subjects(
     min_support: int = 15, verbose: bool = True, sampling: str = "naive"
-) -> Tuple[pd.Series, pd.Series]:
+) -> Tuple[csr_matrix, pd.Series]:
     """
     Read the Excel spreadsheet of emails with email subject lines only
 
@@ -85,9 +115,7 @@ def read_email_subjects(
         print(
             f"Following categories will be removed; fewer than the minimum ({min_support}) found:"
         )
-        for k, v in too_few.items():
-            n_spaces = 30 - len(k)
-            print(f"\t{k}:{' ' * n_spaces}{v}")
+        pprint(too_few)
     mask = ~np.logical_or.reduce([df[category_heading] == s for s in too_few.keys()])
     df = df[mask]
 
@@ -104,6 +132,16 @@ def read_email_subjects(
         ngram_range=(1, 2),
         stop_words="english",
     )
-    bag_of_words: sparse.csr_matrix = vectorizer.fit_transform(subjects)
+    bag_of_words: csr_matrix = vectorizer.fit_transform(subjects)
+
+    # Resample the data if we need to
+    if sampling == "undersample":
+        bag_of_words, labels = _undersample(bag_of_words, labels)
+        if verbose:
+            print("Label counts after under sampling:")
+            pprint(_count_unique(labels))
+
+    elif sampling == "oversample":
+        df = _oversample(df)
 
     return bag_of_words, labels

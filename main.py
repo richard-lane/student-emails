@@ -17,7 +17,7 @@ from libEmails import read
 
 def main() -> None:
     # Read email subjects and demand categories into pandas series
-    X, categories = read.read_email_subjects()
+    X, categories = read.read_email_subjects(min_support=75, sampling="undersample")
 
     # Mask for training
     rng = np.random.default_rng(seed=0)
