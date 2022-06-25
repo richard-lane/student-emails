@@ -9,6 +9,7 @@ import numpy as np
 from typing import Tuple
 from sklearn import metrics
 from scipy import sparse
+from sklearn.model_selection import cross_validate
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -19,7 +20,7 @@ def main() -> None:
     interactive = "-i" in sys.argv or "--interactive" in sys.argv
 
     # Kwargs for parsing the data
-    kw = {"min_support": 75, "sampling": "oversample"}
+    kw = {"min_support": 75, "sampling": "undersample"}
 
     # We need access to the TfidfVectorizer if we want to later run on arbitrary input
     if interactive:
@@ -40,6 +41,29 @@ def main() -> None:
 
     print(metrics.classification_report(categories[train], clf.predict(X[train])))
     print(metrics.classification_report(categories[~train], clf.predict(X[~train])))
+
+    cv_train = cross_validate(
+        clf,
+        X[train],
+        categories[train],
+        scoring="balanced_accuracy",
+        return_train_score=True,
+        return_estimator=True,
+    )
+    cv_test = cross_validate(
+        clf,
+        X[~train],
+        categories[~train],
+        scoring="balanced_accuracy",
+        return_train_score=True,
+        return_estimator=True,
+    )
+    print(
+        f"Train: balanced accuracy {cv_train['test_score'].mean():.4f}+-{cv_train['test_score'].std():.4f}"
+    )
+    print(
+        f"Test: balanced accuracy {cv_test['test_score'].mean():.4f}+-{cv_test['test_score'].std():.4f}"
+    )
 
     # Do some interactive stuff maybe
     if interactive:
