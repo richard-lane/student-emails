@@ -27,34 +27,29 @@ def main(args: argparse.Namespace) -> None:
 
     # We need access to the TfidfVectorizer if we want to later run on arbitrary input
     if args.interactive:
-        X, categories, vectorizer = rv
+        (X_train, categories_train), (X_test, categories_test), vectorizer = rv
     else:
-        X, categories = rv
-
-    # Mask for training
-    rng = np.random.default_rng(seed=0)
-    train_fraction = 0.75
-    train = rng.random(X.shape[0]) < train_fraction
+        (X_train, categories_train), (X_test, categories_test) = rv
 
     # Classifier
     clf = MultinomialNB()
-    clf.fit(X[train], categories[train])
+    clf.fit(X_train, categories_train)
 
-    print(metrics.classification_report(categories[train], clf.predict(X[train])))
-    print(metrics.classification_report(categories[~train], clf.predict(X[~train])))
+    print(metrics.classification_report(categories_train, clf.predict(X_train)))
+    print(metrics.classification_report(categories_test, clf.predict(X_test)))
 
     cv_train = cross_validate(
         clf,
-        X[train],
-        categories[train],
+        X_train,
+        categories_train,
         scoring="balanced_accuracy",
         return_train_score=True,
         return_estimator=True,
     )
     cv_test = cross_validate(
         clf,
-        X[~train],
-        categories[~train],
+        X_test,
+        categories_test,
         scoring="balanced_accuracy",
         return_train_score=True,
         return_estimator=True,

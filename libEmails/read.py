@@ -136,8 +136,8 @@ def read_email_subjects(
                      Undersampling resamples all demand types except the minority class.
                      Oversampling oversamples all classes but the majority.
 
-    :returns: pandas series of email subject lines
-    :returns: pandas series of email demand categories
+    :returns: tuple: (pandas series of email subject lines, series of demand categories) - training
+    :returns: tuple: (pandas series of email subject lines, series of demand categories) - testing
     :returns: if `return_vectorizer is True`, returns also the vectorizer used for fitting/transforming the subjects
 
     """
@@ -166,19 +166,40 @@ def read_email_subjects(
     )
     bag_of_words: csr_matrix = vectorizer.fit_transform(df[subject_heading])
 
-    # Resample the data if we need to
+    # Mask for training
+    rng = np.random.default_rng(seed=0)
+    train_fraction = 0.75
+    train = rng.random(bag_of_words.shape[0]) < train_fraction
+
+    # Resample the training data if we need to
     if sampling == "undersample":
-        bag_of_words, labels = _undersample(bag_of_words, labels)
+        bag_of_words_train, labels_train = _undersample(
+            bag_of_words[train], labels[train]
+        )
         if verbose:
-            print("Label counts after under sampling:")
-            pprint(_count_unique(labels))
+            print("Label counts in training set after under sampling:")
+            pprint(_count_unique(labels_train))
 
     elif sampling == "oversample":
-        bag_of_words, labels = _oversample(bag_of_words, labels)
+        bag_of_words_train, labels_train = _oversample(
+            bag_of_words[train], labels[train]
+        )
         if verbose:
             print("Label counts after under sampling:")
-            pprint(_count_unique(labels))
+            pprint(_count_unique(labels_train))
+
+    else:
+        if verbose:
+            print("No over or undersampling")
+        bag_of_words_train, labels_train = bag_of_words[train], labels[train]
 
     if not return_vectorizer:
-        return bag_of_words, labels
-    return bag_of_words, labels, vectorizer
+        return (bag_of_words_train, labels_train), (
+            bag_of_words[~train],
+            labels[~train],
+        )
+    return (
+        (bag_of_words_train, labels_train),
+        (bag_of_words[~train], labels[~train]),
+        vectorizer,
+    )
