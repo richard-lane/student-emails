@@ -8,6 +8,7 @@ from typing import Tuple, Union
 from pprint import pprint
 from scipy.sparse import csr_matrix
 from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling import RandomOverSampler
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
@@ -37,16 +38,20 @@ def _undersample(
     return sampler.fit_resample(bag_of_words, class_labels)
 
 
-def _oversample(df: pd.DataFrame) -> pd.DataFrame:
+def _oversample(
+    bag_of_words: csr_matrix, class_labels: pd.Series
+) -> Tuple[csr_matrix, pd.Series]:
     """
     Oversample all classes but the majority in order to have a balanced classification set
+    Uses SMOTE to oversample all classes but the majority.
 
     :param df: pandas dataframe to oversample.
                Must have a column titled "Subject category"; this is the class used in the classification
     :returns: dataframe with non-majority subject categories oversampled to have a balanced set
 
     """
-    raise NotImplementedError
+    sampler = RandomOverSampler(random_state=0)
+    return sampler.fit_resample(bag_of_words, class_labels)
 
 
 def _prune(
@@ -129,7 +134,7 @@ def read_email_subjects(
     :param sampling: sampling strategy; "naive", "undersample" or "oversample".
                      Naive sampling makes no attempt to balance the data.
                      Undersampling resamples all demand types except the minority class.
-                     Oversampling uses SMOTE to oversample all classes but the majority.
+                     Oversampling oversamples all classes but the majority.
 
     :returns: pandas series of email subject lines
     :returns: pandas series of email demand categories
@@ -169,7 +174,10 @@ def read_email_subjects(
             pprint(_count_unique(labels))
 
     elif sampling == "oversample":
-        df = _oversample(df)
+        bag_of_words, labels = _oversample(bag_of_words, labels)
+        if verbose:
+            print("Label counts after under sampling:")
+            pprint(_count_unique(labels))
 
     if not return_vectorizer:
         return bag_of_words, labels

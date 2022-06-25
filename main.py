@@ -19,7 +19,7 @@ def main() -> None:
     interactive = "-i" in sys.argv or "--interactive" in sys.argv
 
     # Kwargs for parsing the data
-    kw = {"min_support": 75, "sampling": "undersample"}
+    kw = {"min_support": 75, "sampling": "oversample"}
 
     # We need access to the TfidfVectorizer if we want to later run on arbitrary input
     if interactive:
