@@ -8,6 +8,17 @@ from typing import Tuple
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
+def _count_unique(series: pd.Series) -> dict:
+    """
+    Count unique occurrences in a pandas Series
+
+    :param series: the series to find unique counts
+    :returns: dict of {value: count} for each unique value in series
+
+    """
+    return dict(zip(*np.unique(series, return_counts=True)))
+
+
 def read_email_body() -> pd.DataFrame:
     """
     Read the Excel spreadsheet of emails with email bodies
@@ -67,8 +78,7 @@ def read_email_subjects(
 
     # Get rid of any demand types with too few occurrences
     category_heading = "Subject category"
-    unique_categories = set(df[category_heading])
-    category_counts = {k: np.sum(df[category_heading] == k) for k in unique_categories}
+    category_counts = _count_unique(df[category_heading])
 
     too_few = {k: v for k, v in category_counts.items() if v < min_support}
     if verbose:
