@@ -4,7 +4,7 @@ Read emails
 """
 import pandas as pd
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Union
 from pprint import pprint
 from scipy.sparse import csr_matrix
 from imblearn.under_sampling import RandomUnderSampler
@@ -47,6 +47,44 @@ def _oversample(df: pd.DataFrame) -> pd.DataFrame:
 
     """
     raise NotImplementedError
+
+
+def _prune(
+    df: pd.DataFrame, header: Union[Tuple[str], str], min_support: int, verbose: bool
+) -> pd.DataFrame:
+    """
+    Prune the dataframe, removing rows where the specified column heading(s) are NaN and removing rows where the
+    demand type is too rare.
+
+    :param df: DataFrame to prune values from
+    :param headers: column header(s) to look for NaN values in when removing rows
+    :param min_support: minimum number of occurrences in the demand type column
+    :param verbose: whether to print info about what is going on
+    :returns: dataframe with bad values removed
+
+    """
+    # Drop any where the subject line is NaN
+    if verbose:
+        if not isinstance(header, str):
+            for s in header:
+                print(f"{s}:\tDropping {df[s].isna().sum()} NaN values of {len(df)}")
+        else:
+            print(f"Dropping {df[header].isna().sum()} NaN values of {len(df)}")
+    df.dropna(inplace=True, subset=header)
+
+    # Get rid of any demand types with too few occurrences
+    category_heading = "Subject category"
+    category_counts = _count_unique(df[category_heading])
+
+    too_few = {k: v for k, v in category_counts.items() if v < min_support}
+    if verbose:
+        print(
+            f"Following categories will be removed; fewer than the minimum ({min_support}) found:"
+        )
+        pprint(too_few)
+    mask = ~np.logical_or.reduce([df[category_heading] == s for s in too_few.keys()])
+
+    return df[mask]
 
 
 def read_email_body() -> pd.DataFrame:
@@ -104,30 +142,15 @@ def read_email_subjects(
         "./data/Anonymised_UG_Economics_Email_Sample_7500_2022-05-26 Strip.xlsx"
     )
 
-    # Drop any where the subject line is NaN
+    # Remove NaN values and rows where the demand type is too rare
     subject_heading = "AnonSubject"
-    if verbose:
-        print(f"Dropping {df[subject_heading].isna().sum()} NaN values of {len(df)}")
-    df.dropna(inplace=True, subset=subject_heading)
-
-    # Get rid of any demand types with too few occurrences
-    category_heading = "Subject category"
-    category_counts = _count_unique(df[category_heading])
-
-    too_few = {k: v for k, v in category_counts.items() if v < min_support}
-    if verbose:
-        print(
-            f"Following categories will be removed; fewer than the minimum ({min_support}) found:"
-        )
-        pprint(too_few)
-    mask = ~np.logical_or.reduce([df[category_heading] == s for s in too_few.keys()])
-    df = df[mask]
+    df = _prune(df, subject_heading, min_support, verbose)
 
     # Series for our class labels
+    category_heading = "Subject category"
     labels = df[category_heading]
 
     # Convert our subject lines into a bag of words
-    subjects = df[subject_heading]
     vectorizer = TfidfVectorizer(
         sublinear_tf=True,
         min_df=3,
@@ -136,7 +159,7 @@ def read_email_subjects(
         ngram_range=(1, 2),
         stop_words="english",
     )
-    bag_of_words: csr_matrix = vectorizer.fit_transform(subjects)
+    bag_of_words: csr_matrix = vectorizer.fit_transform(df[subject_heading])
 
     # Resample the data if we need to
     if sampling == "undersample":
