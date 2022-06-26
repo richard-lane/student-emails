@@ -18,7 +18,8 @@ from libEmails import read
 
 
 def main(args: argparse.Namespace) -> None:
-    rv = read.read_email_subjects(
+    fcn = read.read_email_subjects if args.subjects else read.read_email_body
+    rv = fcn(
         args.min,
         args.verbose,
         args.sampling,
@@ -81,7 +82,7 @@ if __name__ == "__main__":
         "--min",
         help="classifier will only be trained on labels with more counts than this minimum",
         type=int,
-        default=75,
+        default=15,
     )
     parser.add_argument(
         "-v",
@@ -98,12 +99,14 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
-        "-s",
         "--sampling",
         help="whether to undersample, oversample or use naive sampling",
         default="naive",
         choices={"undersample", "oversample", "naive"},
     )
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--subjects", "-s", action="store_true")
+    group.add_argument("--bodies", "-b", action="store_true")
     try:
         main(parser.parse_args())
     except (KeyboardInterrupt, EOFError):
