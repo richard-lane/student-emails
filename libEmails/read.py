@@ -188,15 +188,22 @@ def read_email_body(
 
     # Remove NaN values and rows where the demand type is too rare
     body_heading = "EmailBody"
+    subject_heading = "Subject"
     category_heading = "Subject Categorisation"
-    df = _prune(df, body_heading, category_heading, min_support, verbose)
+    df = _prune(
+        df, [body_heading, subject_heading], category_heading, min_support, verbose
+    )
 
     # Series for our class labels
     labels = df[category_heading]
 
-    # Convert our subject lines into a bag of words
+    # Concatenate the email body and the subject line
     email_bodies = df[body_heading]
-    vectorizer, bag_of_words = _vectorise(email_bodies)
+    email_subjects = df[subject_heading]
+    email_documents = email_subjects + "\n\n" + email_bodies
+
+    # Convert to a bag of words
+    vectorizer, bag_of_words = _vectorise(email_subjects)
 
     # Mask for training
     rng = np.random.default_rng(seed=0)
