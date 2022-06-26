@@ -186,9 +186,12 @@ def read_email_body(
         "./data/Anonymised Electrical & Electronic Engineering Email Body Sample 200.xlsx"
     )
 
+    # Replace empty subject lines with empty string
+    subject_heading = "Subject"
+    df[subject_heading] = df[subject_heading].fillna("")
+
     # Remove NaN values and rows where the demand type is too rare
     body_heading = "EmailBody"
-    subject_heading = "Subject"
     category_heading = "Subject Categorisation"
     df = _prune(
         df, [body_heading, subject_heading], category_heading, min_support, verbose
