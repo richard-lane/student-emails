@@ -84,6 +84,7 @@ def _prune(
 
     # Get rid of any demand types with too few occurrences
     category_counts = _count_unique(df[label_header])
+    pprint(category_counts)
 
     too_few = {k: v for k, v in category_counts.items() if v < min_support}
     if verbose:
